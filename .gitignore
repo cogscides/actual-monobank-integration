@@ -3,3 +3,8 @@ node_modules/
 *.log
 .vscode/
 actual-data/*/
+
+# owner local files you may delete
+.exp-ignore
+export.md
+exportconfig.json

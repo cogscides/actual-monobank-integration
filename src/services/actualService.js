@@ -64,10 +64,25 @@ class ActualService {
           })
         )
 
-        await api.addTransactions(actualAccountId, formattedTransactions)
-        logger.info(
-          `Imported ${formattedTransactions.length} transactions for account: ${account.name}`
+        const existingTransactions = await api.getTransactions(actualAccountId)
+        const existingImportedIds = new Set(
+          existingTransactions.map((t) => t.imported_id)
         )
+
+        const newTransactions = formattedTransactions.filter(
+          (t) => !existingImportedIds.has(t.imported_id)
+        )
+
+        if (newTransactions.length > 0) {
+          await api.addTransactions(actualAccountId, newTransactions)
+          logger.info(
+            `Imported ${newTransactions.length} new transactions for account: ${account.name}`
+          )
+        } else {
+          logger.info(
+            `No new transactions to import for account: ${account.name}`
+          )
+        }
       }
     } catch (error) {
       logger.error('Failed to import transactions', error)

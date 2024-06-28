@@ -5,3 +5,15 @@ services:
     env_file: .env
     volumes:
       - ${ACTUAL_DATA_DIR}:/usr/src/app/actual-data
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - proxy
+      - default
+
+networks:
+  proxy:
+    external: true
+  default:
+    driver: bridge

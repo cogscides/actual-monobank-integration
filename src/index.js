@@ -1,19 +1,20 @@
 const config = require('./config/config')
 const actualService = require('./services/actualService')
 const monobankService = require('./services/monobankService')
+const webhookService = require('./services/webhookService')
 const logger = require('./utils/logger')
 
 async function syncTransactions() {
   try {
     const now = new Date()
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+    const startDate = config.syncStartDate
 
     logger.info(
-      `Syncing transactions from ${thirtyDaysAgo.toISOString()} to ${now.toISOString()}`
+      `Syncing transactions from ${startDate.toISOString()} to ${now.toISOString()}`
     )
 
     const transactions = await monobankService.getTransactionsForAllAccounts(
-      thirtyDaysAgo,
+      startDate,
       now
     )
 
@@ -41,6 +42,9 @@ async function main() {
     logger.info('Monobank service initialized')
 
     await syncTransactions()
+
+    await monobankService.setupWebhook()
+    webhookService.start(config.webhookPort)
 
     // Run sync periodically
     setInterval(syncTransactions, config.syncInterval)

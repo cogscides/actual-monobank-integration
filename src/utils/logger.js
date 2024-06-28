@@ -1,14 +1,15 @@
 const winston = require('winston')
 const { format } = winston
 const util = require('util')
+require('winston-daily-rotate-file')
 
 // Function to safely stringify objects
 const safeStringify = (obj) => {
   return util.inspect(obj, { depth: null, colors: false })
 }
 
-// Custom format for console output
-const consoleFormat = format.printf(
+// Custom format for console and file output
+const customFormat = format.printf(
   ({ level, message, timestamp, ...metadata }) => {
     let msg = `${timestamp} [${level}]: ${message}`
     if (Object.keys(metadata).length > 0) {
@@ -23,20 +24,27 @@ const logger = winston.createLogger({
   format: format.combine(
     format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
     format.errors({ stack: true }),
-    format.splat()
+    format.splat(),
+    customFormat
   ),
   transports: [
     new winston.transports.Console({
-      format: format.combine(format.colorize(), consoleFormat),
+      format: format.combine(format.colorize(), customFormat),
     }),
-    new winston.transports.File({
-      filename: 'error.log',
+    new winston.transports.DailyRotateFile({
+      filename: 'error-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: '14d',
       level: 'error',
-      format: format.combine(format.timestamp(), format.json()),
     }),
-    new winston.transports.File({
-      filename: 'combined.log',
-      format: format.combine(format.timestamp(), format.json()),
+    new winston.transports.DailyRotateFile({
+      filename: 'combined-%DATE%.log',
+      datePattern: 'YYYY-MM-DD',
+      zippedArchive: true,
+      maxSize: '20m',
+      maxFiles: '14d',
     }),
   ],
 })

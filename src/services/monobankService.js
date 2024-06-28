@@ -80,38 +80,57 @@ class MonobankService {
   }
 
   async getTransactions(accountId, from, to) {
-    try {
-      const fromTimestamp = Math.floor(from.getTime() / 1000)
-      const toTimestamp = Math.floor(to.getTime() / 1000)
+    const transactions = []
+    let currentFrom = new Date(from)
+    const endDate = new Date(to)
 
-      logger.info(
-        `Fetching transactions for account ${accountId} from ${from.toISOString()} to ${to.toISOString()}`
-      )
-      logger.info(`Using timestamps: from=${fromTimestamp}, to=${toTimestamp}`)
+    while (currentFrom < endDate) {
+      let currentTo = new Date(currentFrom.getTime() + 30 * 24 * 60 * 60 * 1000) // 30 days later
+      if (currentTo > endDate) {
+        currentTo = endDate
+      }
 
-      const response = await this.api.get(
-        `/personal/statement/${accountId}/${fromTimestamp}/${toTimestamp}`
-      )
+      try {
+        const fromTimestamp = Math.floor(currentFrom.getTime() / 1000)
+        const toTimestamp = Math.floor(currentTo.getTime() / 1000)
 
-      if (Array.isArray(response.data)) {
         logger.info(
-          `Retrieved ${response.data.length} transactions for this period`
+          `Fetching transactions for account ${accountId} from ${currentFrom.toISOString()} to ${currentTo.toISOString()}`
         )
-        return response.data.map((transaction) =>
-          this.formatTransaction(transaction, accountId)
+
+        const response = await this.api.get(
+          `/personal/statement/${accountId}/${fromTimestamp}/${toTimestamp}`
         )
-      } else {
-        logger.warn('Unexpected response format', response.data)
-        return []
+
+        if (Array.isArray(response.data)) {
+          logger.info(
+            `Retrieved ${response.data.length} transactions for this period`
+          )
+          transactions.push(
+            ...response.data.map((transaction) =>
+              this.formatTransaction(transaction, accountId)
+            )
+          )
+        } else {
+          logger.warn('Unexpected response format', response.data)
+        }
+
+        // Move to the next period
+        currentFrom = new Date(currentTo.getTime() + 1000) // Add 1 second to avoid overlap
+
+        // Add a delay to avoid rate limiting
+        await delay(5000)
+      } catch (error) {
+        if (error.response && error.response.status === 429) {
+          logger.warn('Rate limit hit. Retrying after 60 seconds.')
+          await delay(60000)
+          continue
+        }
+        throw error
       }
-    } catch (error) {
-      if (error.response && error.response.status === 429) {
-        logger.warn('Rate limit hit. Retrying after 60 seconds.')
-        await delay(60000)
-        return this.getTransactions(accountId, from, to)
-      }
-      throw error
     }
+
+    return transactions
   }
 
   formatTransaction(transaction, accountId) {
@@ -148,6 +167,7 @@ class MonobankService {
     // }
 
     return {
+      id: transaction.id,
       date: new Date(transaction.time * 1000),
       amount: transaction.amount / 100,
       payee: transaction.description,
@@ -169,6 +189,18 @@ class MonobankService {
             params: error.config.params,
           }
         : undefined,
+    }
+  }
+
+  async setupWebhook() {
+    try {
+      const response = await this.api.post('/personal/webhook', {
+        webHookUrl: config.webhookUrl,
+      })
+      logger.info('Webhook set up successfully')
+    } catch (error) {
+      logger.error('Failed to set up webhook', this.formatError(error))
+      throw error
     }
   }
 }

@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "description": "Integration between Actual Finance and Monobank",
   "main": "src/index.js",
+  "engines": {
+    "node": ">=18.0.0 <21.0.0"
+  },
   "scripts": {
     "start": "node src/index.js",
+    "setup-webhook": "node src/setupWebhook.js",
     "lint": "eslint .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -14,7 +18,10 @@
   "dependencies": {
     "@actual-app/api": "^6.8.1",
     "axios": "^1.7.2",
+    "body-parser": "^1.20.2",
     "dotenv": "^16.4.5",
-    "winston": "^3.13.0"
+    "express": "^4.19.2",
+    "winston": "^3.13.0",
+    "winston-daily-rotate-file": "^5.0.0"
   }
 }

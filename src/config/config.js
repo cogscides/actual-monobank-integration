@@ -22,4 +22,9 @@ module.exports = {
   syncInterval: parseInt(process.env.SYNC_INTERVAL) || 3600000, // 1 hour in milliseconds
   monoToActualMappings,
   syncAllAccounts: process.env.MONO_TO_ACTUAL_FOR_ALL === 'true',
+  syncStartDate: process.env.SYNC_START_DATE
+    ? new Date(process.env.SYNC_START_DATE)
+    : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Default to 30 days ago
+  webhookUrl: process.env.WEBHOOK_URL,
+  webhookPort: process.env.WEBHOOK_PORT || 3000,
 }
