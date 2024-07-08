@@ -6,5 +6,5 @@ actual-data/*/
 
 # owner local files you may delete
 .exp-ignore
-export.md
+export/**
 exportconfig.json

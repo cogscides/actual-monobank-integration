@@ -1,19 +1,26 @@
-version: '3'
+version: '3.8'
+
 services:
   app:
     build: .
-    env_file: .env
+    ports:
+      - '3000:3000'
     volumes:
-      - ${ACTUAL_DATA_DIR}:/usr/src/app/actual-data
+      - ./actual-data:/usr/src/app/actual-data
+      - ./logs:/usr/src/app/logs
     environment:
       - NODE_ENV=production
+    env_file:
+      - .env
     restart: unless-stopped
-    networks:
-      - proxy
-      - default
-
-networks:
-  proxy:
-    external: true
-  default:
-    driver: bridge
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
